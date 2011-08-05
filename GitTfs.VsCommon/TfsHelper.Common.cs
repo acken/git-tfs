@@ -359,17 +359,23 @@ namespace Sep.Git.Tfs.VsCommon
 
             public long ContentLength
             {
-                get { return _contentLength; }
+                get { EnsureDownloaded(); return _contentLength; }
             }
 
             public Stream DownloadFile()
             {
+                EnsureDownloaded();
+                return _tempFile.ToStream();
+            }
+
+            private void EnsureDownloaded()
+            {
                 if(_tempFile == null)
                 {
                     _tempFile = new TemporaryFile();
+                    _contentLength = new FileInfo(_tempFile).Length();
                     _pendingChange.DownloadShelvedFile(_tempFile);
                 }
-                return _tempFile.ToStream();
             }
         }
 
