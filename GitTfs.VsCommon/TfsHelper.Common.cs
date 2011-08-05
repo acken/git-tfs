@@ -11,7 +11,6 @@ using SEP.Extensions;
 using Sep.Git.Tfs.Commands;
 using Sep.Git.Tfs.Core;
 using Sep.Git.Tfs.Core.TfsInterop;
-using Sep.Git.Tfs.Util;
 using StructureMap;
 using ChangeType = Microsoft.TeamFoundation.Server.ChangeType;
 
@@ -319,7 +318,6 @@ namespace Sep.Git.Tfs.VsCommon
             private readonly PendingChange _pendingChange;
             private readonly TfsApiBridge _bridge;
             private long _contentLength;
-            private TemporaryFile _tempFile;
 
             public FakeItem(PendingChange pendingChange, TfsApiBridge bridge)
             {
@@ -359,23 +357,18 @@ namespace Sep.Git.Tfs.VsCommon
 
             public long ContentLength
             {
-                get { EnsureDownloaded(); return _contentLength; }
+                get { return _contentLength; }
             }
 
             public Stream DownloadFile()
             {
-                EnsureDownloaded();
-                return _tempFile.ToStream();
-            }
-
-            private void EnsureDownloaded()
-            {
-                if(_tempFile == null)
-                {
-                    _tempFile = new TemporaryFile();
-                    _contentLength = new FileInfo(_tempFile).Length();
-                    _pendingChange.DownloadShelvedFile(_tempFile);
-                }
+                string filename = Path.GetTempFileName();
+                _pendingChange.DownloadShelvedFile(filename);
+                var buffer = File.ReadAllBytes(filename);
+                _contentLength = buffer.Length;
+                var memoryStream = new MemoryStream(buffer, false);
+                File.Delete(filename);
+                return memoryStream;
             }
         }
 
